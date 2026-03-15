@@ -1,64 +1,114 @@
 import streamlit as st
 import pandas as pd
 
-# Dashboard title
-st.title("Brew Haven Sales Dashboard 2025")
+# -----------------------------
+# PAGE TITLE
+# -----------------------------
 
-# Load Excel dataset
+st.title("☕ Brew Haven Sales Dashboard 2025")
+
+# -----------------------------
+# LOAD DATA
+# -----------------------------
+
 data = pd.read_excel("brew_haven_2025_dataset.xlsx")
-print(data.columns)
+
+# Clean column names (removes spaces)
+data.columns = data.columns.str.strip()
+
 # Convert date column to datetime
-data["date"] = pd.to_datetime(data["date"])
+data["Date"] = pd.to_datetime(data["Date"])
 
-# Create a month column from the date
-data["month"] = data["date"].dt.month
+# Create Month column
+data["Month"] = data["Date"].dt.month_name()
 
-# ---------------------------
-# KPI SECTION
-# ---------------------------
+# -----------------------------
+# SIDEBAR FILTERS
+# -----------------------------
 
-total_revenue = data["sales_revenue"].sum()
-total_profit = data["gross_profit"].sum()
-total_orders = data["transaction_id"].count()
+st.sidebar.header("Dashboard Filters")
 
-# Create 3 columns for KPI cards
+branch_filter = st.sidebar.multiselect(
+    "Select Branch",
+    options=data["Branch"].unique(),
+    default=data["Branch"].unique()
+)
+
+payment_filter = st.sidebar.multiselect(
+    "Select Payment Method",
+    options=data["Payment_Method"].unique(),
+    default=data["Payment_Method"].unique()
+)
+
+# Apply filters
+filtered_data = data[
+    (data["Branch"].isin(branch_filter)) &
+    (data["Payment_Method"].isin(payment_filter))
+]
+
+# -----------------------------
+# KPI METRICS
+# -----------------------------
+
+total_revenue = filtered_data["Sales_Revenue"].sum()
+total_profit = filtered_data["Gross_Profit"].sum()
+total_orders = filtered_data["Transaction_ID"].count()
+
 col1, col2, col3 = st.columns(3)
 
 col1.metric("Total Revenue", f"${total_revenue:,.2f}")
 col2.metric("Total Profit", f"${total_profit:,.2f}")
 col3.metric("Total Orders", total_orders)
 
-# ---------------------------
-# REVENUE TREND
-# ---------------------------
+# -----------------------------
+# MONTHLY REVENUE TREND
+# -----------------------------
 
-st.subheader("Monthly Revenue Trend")
+st.subheader("📈 Monthly Revenue Trend")
 
-revenue_trend = data.groupby("month")["sales_revenue"].sum()
+monthly_revenue = filtered_data.groupby("Month")["Sales_Revenue"].sum()
 
-st.line_chart(revenue_trend)
+st.line_chart(monthly_revenue)
 
-# ---------------------------
-# CATEGORY SALES
-# ---------------------------
+# -----------------------------
+# REVENUE BY CATEGORY
+# -----------------------------
 
-st.subheader("Revenue by Coffee Category")
+st.subheader("☕ Revenue by Coffee Category")
 
-category_sales = data.groupby("category")["sales_revenue"].sum()
+category_sales = filtered_data.groupby("Category")["Sales_Revenue"].sum()
 
 st.bar_chart(category_sales)
 
-# ---------------------------
-# TOP PRODUCTS
-# ---------------------------
+# -----------------------------
+# TOP SELLING PRODUCTS
+# -----------------------------
 
-st.subheader("Top Selling Coffee Products")
+st.subheader("🔥 Top 5 Selling Products")
 
 top_products = (
-    data.groupby("product")["quantity"]
+    filtered_data.groupby("Product")["Quantity"]
     .sum()
     .sort_values(ascending=False)
     .head(5)
 )
 
 st.bar_chart(top_products)
+
+# -----------------------------
+# SALES BY PAYMENT METHOD
+# -----------------------------
+
+st.subheader("💳 Sales by Payment Method")
+
+payment_sales = filtered_data.groupby("Payment_Method")["Sales_Revenue"].sum()
+
+st.bar_chart(payment_sales)
+
+# -----------------------------
+# SHOW DATA TABLE
+# -----------------------------
+
+st.subheader("📄 Transaction Data")
+
+st.dataframe(filtered_data)
