@@ -1,12 +1,24 @@
-st.set_page_config(layout="wide")
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 # -----------------------------
-# PAGE TITLE
+# PAGE SETTINGS
+# -----------------------------
+
+st.set_page_config(
+    page_title="Brew Haven Dashboard",
+    page_icon="☕",
+    layout="wide"
+)
+
+# -----------------------------
+# TITLE
 # -----------------------------
 
 st.title("☕ Brew Haven Sales Dashboard 2025")
+st.markdown("### Coffee Shop Business Performance")
+st.markdown("---")
 
 # -----------------------------
 # LOAD DATA
@@ -14,20 +26,18 @@ st.title("☕ Brew Haven Sales Dashboard 2025")
 
 data = pd.read_excel("brew_haven_2025_dataset.xlsx")
 
-# Clean column names (removes spaces)
+# Clean column names
 data.columns = data.columns.str.strip()
 
-# Convert date column to datetime
+# Convert date
 data["Date"] = pd.to_datetime(data["Date"])
-
-# Create Month column
 data["Month"] = data["Date"].dt.month_name()
 
 # -----------------------------
 # SIDEBAR FILTERS
 # -----------------------------
 
-st.sidebar.header("Dashboard Filters")
+st.sidebar.header("Filters")
 
 branch_filter = st.sidebar.multiselect(
     "Select Branch",
@@ -36,19 +46,18 @@ branch_filter = st.sidebar.multiselect(
 )
 
 payment_filter = st.sidebar.multiselect(
-    "Select Payment Method",
+    "Payment Method",
     options=data["Payment_Method"].unique(),
     default=data["Payment_Method"].unique()
 )
 
-# Apply filters
 filtered_data = data[
     (data["Branch"].isin(branch_filter)) &
     (data["Payment_Method"].isin(payment_filter))
 ]
 
 # -----------------------------
-# KPI METRICS
+# KPI CARDS
 # -----------------------------
 
 total_revenue = filtered_data["Sales_Revenue"].sum()
@@ -56,60 +65,77 @@ total_profit = filtered_data["Gross_Profit"].sum()
 total_orders = filtered_data["Transaction_ID"].count()
 
 col1, col2, col3 = st.columns(3)
-
 col1.metric("Total Revenue", f"${total_revenue:,.2f}")
 col2.metric("Total Profit", f"${total_profit:,.2f}")
 col3.metric("Total Orders", total_orders)
 
-# -----------------------------
-# MONTHLY REVENUE TREND
-# -----------------------------
-
-st.subheader("📈 Monthly Revenue Trend")
-
-monthly_revenue = filtered_data.groupby("Month")["Sales_Revenue"].sum()
-
-st.line_chart(monthly_revenue)
+st.markdown("---")
 
 # -----------------------------
-# REVENUE BY CATEGORY
+# CHARTS ROW 1
 # -----------------------------
 
-st.subheader("☕ Revenue by Coffee Category")
+col4, col5 = st.columns(2)
 
-category_sales = filtered_data.groupby("Category")["Sales_Revenue"].sum()
+with col4:
+    monthly_sales = filtered_data.groupby("Month")["Sales_Revenue"].sum().reset_index()
+    fig1 = px.line(
+        monthly_sales,
+        x="Month",
+        y="Sales_Revenue",
+        title="Monthly Revenue Trend",
+        markers=True
+    )
+    st.plotly_chart(fig1, use_container_width=True)
 
-st.bar_chart(category_sales)
-
-# -----------------------------
-# TOP SELLING PRODUCTS
-# -----------------------------
-
-st.subheader("🔥 Top 5 Selling Products")
-
-top_products = (
-    filtered_data.groupby("Product")["Quantity"]
-    .sum()
-    .sort_values(ascending=False)
-    .head(5)
-)
-
-st.bar_chart(top_products)
-
-# -----------------------------
-# SALES BY PAYMENT METHOD
-# -----------------------------
-
-st.subheader("💳 Sales by Payment Method")
-
-payment_sales = filtered_data.groupby("Payment_Method")["Sales_Revenue"].sum()
-
-st.bar_chart(payment_sales)
+with col5:
+    category_sales = filtered_data.groupby("Category")["Sales_Revenue"].sum().reset_index()
+    fig2 = px.pie(
+        category_sales,
+        names="Category",
+        values="Sales_Revenue",
+        title="Revenue by Category",
+        hole=0.4
+    )
+    st.plotly_chart(fig2, use_container_width=True)
 
 # -----------------------------
-# SHOW DATA TABLE
+# CHARTS ROW 2
 # -----------------------------
 
-st.subheader("📄 Transaction Data")
+col6, col7 = st.columns(2)
 
-st.dataframe(filtered_data)
+with col6:
+    top_products = (
+        filtered_data.groupby("Product")["Quantity"]
+        .sum()
+        .sort_values(ascending=False)
+        .head(5)
+        .reset_index()
+    )
+    fig3 = px.bar(
+        top_products,
+        x="Product",
+        y="Quantity",
+        title="Top 5 Selling Products",
+        color="Quantity"
+    )
+    st.plotly_chart(fig3, use_container_width=True)
+
+with col7:
+    payment_sales = filtered_data.groupby("Payment_Method")["Sales_Revenue"].sum().reset_index()
+    fig4 = px.bar(
+        payment_sales,
+        x="Payment_Method",
+        y="Sales_Revenue",
+        title="Sales by Payment Method",
+        color="Sales_Revenue"
+    )
+    st.plotly_chart(fig4, use_container_width=True)
+
+# -----------------------------
+# OPTIONAL DATA TABLE
+# -----------------------------
+
+if st.checkbox("Show Transaction Data"):
+    st.dataframe(filtered_data)
