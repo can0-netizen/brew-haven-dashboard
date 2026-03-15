@@ -6,7 +6,7 @@ st.title("Brew Haven Sales Dashboard 2025")
 
 # Load Excel dataset
 data = pd.read_excel("brew_haven_2025_dataset.xlsx")
-
+print(data.columns)
 # Convert date column to datetime
 data["date"] = pd.to_datetime(data["date"])
 
