@@ -30,19 +30,33 @@ data["Month"] = data["Date"].dt.month_name()
 # SIDEBAR FILTERS
 # -----------------------------
 st.sidebar.header("Filters")
+
+# Branch filter
 branch_filter = st.sidebar.multiselect(
     "Select Branch",
     options=data["Branch"].unique(),
     default=data["Branch"].unique()
 )
+
+# Payment Method filter
 payment_filter = st.sidebar.multiselect(
     "Payment Method",
     options=data["Payment_Method"].unique(),
     default=data["Payment_Method"].unique()
 )
+
+# Date range filter
+date_range = st.sidebar.date_input(
+    "Select Date Range",
+    [data["Date"].min(), data["Date"].max()]
+)
+
+# Apply filters
 filtered_data = data[
     (data["Branch"].isin(branch_filter)) &
-    (data["Payment_Method"].isin(payment_filter))
+    (data["Payment_Method"].isin(payment_filter)) &
+    (data["Date"] >= pd.to_datetime(date_range[0])) &
+    (data["Date"] <= pd.to_datetime(date_range[1]))
 ]
 
 # -----------------------------
@@ -76,8 +90,8 @@ with col1:
         y="Sales_Revenue",
         title="Monthly Revenue Trend",
         markers=True,
-        template="plotly_dark",
-        color_discrete_sequence=["#FF6F61"],
+        template="plotly_white",
+        color_discrete_sequence=["#6f4e37"]  # Coffee brown
     )
     fig1.update_layout(title_font_size=18, xaxis_title="Month", yaxis_title="Revenue")
     st.plotly_chart(fig1, use_container_width=True)
@@ -94,7 +108,7 @@ with col2:
         values="Sales_Revenue",
         title="Revenue by Category",
         hole=0.4,
-        color_discrete_sequence=px.colors.qualitative.Pastel
+        color_discrete_sequence=px.colors.sequential.Burgyl
     )
     fig2.update_traces(textposition='inside', textinfo='percent+label')
     st.plotly_chart(fig2, use_container_width=True)
@@ -118,7 +132,7 @@ with col3:
         y="Quantity",
         title="Top 5 Selling Products",
         color="Quantity",
-        color_continuous_scale=px.colors.sequential.Oranges,
+        color_continuous_scale=px.colors.sequential.Oranges
     )
     fig3.update_layout(title_font_size=18, xaxis_title="Product", yaxis_title="Quantity Sold")
     st.plotly_chart(fig3, use_container_width=True)
@@ -135,7 +149,7 @@ with col4:
         y="Sales_Revenue",
         title="Sales by Payment Method",
         color="Sales_Revenue",
-        color_continuous_scale=px.colors.sequential.Teal,
+        color_continuous_scale=px.colors.sequential.Teal
     )
     fig4.update_layout(title_font_size=18, xaxis_title="Payment Method", yaxis_title="Revenue")
     st.plotly_chart(fig4, use_container_width=True)
